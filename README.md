@@ -18,12 +18,7 @@ The Worker is intentionally limited to public playlist lookups. A public URL is 
 
 ## Deploy the app with GitHub Pages
 
-1. Push this repository to GitHub.
-2. In the repository, open **Settings → Pages**.
-3. Under **Build and deployment**, choose **Deploy from a branch**, select the `main` branch and `/ (root)`, then save.
-4. Open the published Pages URL and enter your deployed Worker URL.
-
-No build step or package installation is required.
+The included GitHub Actions workflow deploys the site automatically on every push to `main`. After the first successful run, open the repository's **Settings → Pages** to find the published URL. No build step or package installation is required.
 
 ## Import the export
 
