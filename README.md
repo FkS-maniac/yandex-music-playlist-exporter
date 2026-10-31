@@ -2,6 +2,8 @@
 
 A small, standalone static app that exports a **public** Yandex Music playlist to JSON. It does not sign in to Yandex or change the source playlist. The downloaded file has the shape `{ "likes": [...] }`, with each track containing `id`, `title`, `artists`, `album`, `durationMs`, and `isrc`.
 
+The Russian-language interface follows the dark-card, green-accent style of the companion music-migration project. After export it shows the track count and a scrollable list of tracks.
+
 ## Run locally
 
 Open `index.html` in a browser, or serve this directory with any static file server. To fetch playlists from a browser, deploy the included Cloudflare Worker and enter its HTTPS URL in the form.

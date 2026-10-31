@@ -1,103 +1,54 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#111827">
-    <title>Yandex Music playlist exporter</title>
-    <style>
-      :root {
-        color-scheme: dark;
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        background: #111827;
-        color: #f9fafb;
-      }
-
-      * { box-sizing: border-box; }
-
-      body {
-        min-height: 100vh;
-        margin: 0;
-        padding: 48px 20px;
-        background: radial-gradient(ellipse at top, #263248 0, #111827 55%);
-      }
-
-      main { width: min(100%, 680px); margin: 0 auto; }
-      h1 { margin: 0 0 8px; font-size: clamp(1.8rem, 5vw, 2.5rem); }
-      p { color: #cbd5e1; line-height: 1.55; }
-
-      .card {
-        margin-top: 24px;
-        padding: 24px;
-        border: 1px solid #374151;
-        border-radius: 16px;
-        background: #182233;
-        box-shadow: 0 18px 50px #0003;
-      }
-
-      label { display: block; margin: 18px 0 8px; font-weight: 650; }
-      input, textarea {
-        width: 100%;
-        border: 1px solid #4b5563;
-        border-radius: 8px;
-        padding: 12px;
-        background: #111827;
-        color: #f9fafb;
-        font: inherit;
-      }
-
-      textarea { min-height: 96px; resize: vertical; }
-      input:focus, textarea:focus { outline: 2px solid #f97316; outline-offset: 2px; }
-      button, .download {
-        display: inline-block;
-        margin-top: 20px;
-        border: 0;
-        border-radius: 8px;
-        padding: 12px 18px;
-        background: #f97316;
-        color: #111827;
-        font: inherit;
-        font-weight: 750;
-        text-decoration: none;
-        cursor: pointer;
-      }
-
-      button:disabled { opacity: .65; cursor: wait; }
-      .hint { margin: 6px 0 0; color: #9ca3af; font-size: .9rem; }
-      #status { min-height: 1.5em; margin-bottom: 0; }
-      #result { margin-top: 18px; }
-      #result[hidden] { display: none; }
-      .error { color: #fca5a5; }
-      .success { color: #86efac; }
-      @media (max-width: 520px) {
-        body { padding: 28px 14px; }
-        .card { padding: 18px; }
-      }
-    </style>
+    <meta name="theme-color" content="#0f1115">
+    <title>Yandex Music — экспорт плейлиста</title>
+    <link rel="stylesheet" href="styles.css">
   </head>
   <body>
+    <header>
+      <h1>🎵 Yandex Music → JSON</h1>
+      <p class="subtitle">Сохраните публичный плейлист Яндекс Музыки в файл для загрузки в музыкальный проект.</p>
+    </header>
+
     <main>
-      <h1>Yandex Music playlist exporter</h1>
-      <p>Export a public Yandex Music playlist as JSON. No Yandex sign-in is needed.</p>
+      <section class="card">
+        <h2>1. Ссылка или iframe плейлиста</h2>
+        <p class="hint warn">Яндекс не разрешает браузеру обращаться к API напрямую. Для экспорта укажите адрес своего Cloudflare Worker — инструкция есть в README.</p>
 
-      <form class="card" id="export-form">
-        <label for="playlist">Public playlist URL or iframe</label>
-        <textarea id="playlist" name="playlist" required
-          placeholder="https://music.yandex.ru/users/.../playlists/..."></textarea>
-        <p class="hint">Paste a playlist link or its iframe embed code. HTML is treated as text and never executed.</p>
+        <form id="export-form">
+          <label for="playlist">Публичная ссылка или iframe</label>
+          <textarea id="playlist" name="playlist" required
+            placeholder="https://music.yandex.ru/users/.../playlists/..."></textarea>
+          <p class="hint">HTML iframe обрабатывается как текст — код страницы не запускается.</p>
 
-        <label for="worker">Your Cloudflare Worker URL</label>
-        <input id="worker" name="worker" type="url" required
-          placeholder="https://your-worker.your-subdomain.workers.dev">
-        <p class="hint">Deploy the included Worker; see the README. The browser needs it to access Yandex's public API.</p>
+          <label for="worker">Адрес Cloudflare Worker</label>
+          <input id="worker" name="worker" type="url" required
+            placeholder="https://your-worker.your-subdomain.workers.dev">
+          <p class="hint">Укажите базовый адрес Worker без пути, например https://playlist-proxy.example.workers.dev</p>
 
-        <button id="submit" type="submit">Export playlist</button>
-        <p id="status" role="status" aria-live="polite"></p>
-        <section id="result" aria-live="polite" hidden>
-          <p id="count"></p>
-          <a id="download" class="download" download="yandex-playlist.json">Download JSON</a>
-        </section>
-      </form>
+          <div class="actions">
+            <button id="submit" class="btn primary" type="submit">Сохранить плейлист в JSON</button>
+            <span id="status" class="status" role="status" aria-live="polite"></span>
+          </div>
+        </form>
+      </section>
+
+      <section id="result" class="card hidden" aria-live="polite">
+        <h2>2. Плейлист готов</h2>
+        <div class="summary">
+          <div class="stat"><b id="count">0</b>треков</div>
+        </div>
+        <div class="actions compact">
+          <a id="download" class="btn primary" download="yandex-playlist.json">Скачать yandex-playlist.json</a>
+        </div>
+        <h2 class="track-heading">Список треков</h2>
+        <ol id="track-list" class="track-list"></ol>
+      </section>
+
+      <p class="hint footer-note">Экспортёр не требует входа в Яндекс Музыку и не изменяет плейлист. JSON можно загрузить в проект переноса музыки.</p>
     </main>
 
     <script>
@@ -111,6 +62,7 @@
       const result = document.querySelector("#result");
       const count = document.querySelector("#count");
       const download = document.querySelector("#download");
+      const trackList = document.querySelector("#track-list");
       let downloadUrl;
 
       function getPlaylistUrl(input) {
@@ -120,7 +72,7 @@
 
         if (iframe) {
           const src = iframe[0].match(/\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
-          if (!src) throw new Error("The iframe has no valid src attribute.");
+          if (!src) throw new Error("В iframe не найден адрес src.");
           candidate = (src[1] || src[2] || src[3]).replace(/&amp;/gi, "&");
         }
 
@@ -128,7 +80,7 @@
         try {
           url = new URL(candidate);
         } catch {
-          throw new Error("Enter a complete public playlist URL or iframe embed code.");
+          throw new Error("Вставьте полную публичную ссылку или iframe плейлиста.");
         }
 
         const allowedHosts = new Set([
@@ -140,14 +92,14 @@
           "music.yandex.com.tr"
         ]);
         if (url.protocol !== "https:" || !allowedHosts.has(url.hostname)) {
-          throw new Error("Use an HTTPS playlist link from music.yandex.");
+          throw new Error("Нужна HTTPS-ссылка с сайта music.yandex.");
         }
 
         const pathMatch = url.pathname.match(/^\/users\/([^/]+)\/playlists\/([^/]+)\/?$/);
         const iframeRoute = url.hash.slice(1).split("?")[0].replace(/^\/+/, "");
         const match = pathMatch || iframeRoute.match(/^users\/([^/]+)\/playlists\/([^/]+)\/?$/);
         if (!match) {
-          throw new Error("The link must point to a public playlist at /users/{owner}/playlists/{kind}.");
+          throw new Error("Ссылка должна вести на публичный плейлист: /users/{owner}/playlists/{kind}.");
         }
 
         let owner;
@@ -156,10 +108,10 @@
           owner = decodeURIComponent(match[1]);
           kind = decodeURIComponent(match[2]);
         } catch {
-          throw new Error("The playlist URL contains invalid path encoding.");
+          throw new Error("В ссылке плейлиста некорректное кодирование.");
         }
         if (!/^[A-Za-z0-9._-]{1,128}$/.test(owner) || !/^[A-Za-z0-9_-]{1,64}$/.test(kind)) {
-          throw new Error("The playlist owner or ID contains unsupported characters.");
+          throw new Error("В имени пользователя или ID плейлиста есть недопустимые символы.");
         }
         return { owner, kind };
       }
@@ -169,13 +121,13 @@
         try {
           url = new URL(input.trim());
         } catch {
-          throw new Error("Enter your deployed Cloudflare Worker URL.");
+          throw new Error("Укажите адрес развёрнутого Cloudflare Worker.");
         }
         if (url.protocol !== "https:" && !(url.protocol === "http:" && url.hostname === "localhost")) {
-          throw new Error("The Worker URL must use HTTPS.");
+          throw new Error("Адрес Worker должен использовать HTTPS.");
         }
         if (url.username || url.password || url.search || url.hash || url.pathname !== "/") {
-          throw new Error("Use the Worker base URL without a path, credentials, query parameters, or a fragment.");
+          throw new Error("Укажите только базовый адрес Worker, без пути и параметров.");
         }
         const basePath = url.pathname.replace(/\/+$/, "");
         url.pathname = basePath + "/users/" + encodeURIComponent(owner) + "/playlists/" + encodeURIComponent(kind);
@@ -196,13 +148,32 @@
         };
       }
 
+      function renderTrackList(tracks) {
+        const fragment = document.createDocumentFragment();
+        tracks.forEach((track) => {
+          const item = document.createElement("li");
+          item.className = "track-item";
+
+          const title = document.createElement("strong");
+          title.textContent = track.title || "Без названия";
+          item.append(title);
+
+          const metadata = document.createElement("span");
+          const artists = track.artists.length ? track.artists.join(", ") : "Исполнитель неизвестен";
+          metadata.textContent = track.album ? artists + " · " + track.album : artists;
+          item.append(metadata);
+          fragment.append(item);
+        });
+        trackList.replaceChildren(fragment);
+      }
+
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
         status.textContent = "";
         status.className = "";
-        result.hidden = true;
+        result.classList.add("hidden");
         submitButton.disabled = true;
-        submitButton.textContent = "Exporting…";
+        submitButton.textContent = "Загружаем…";
 
         try {
           const { owner, kind } = getPlaylistUrl(playlistInput.value);
@@ -210,15 +181,15 @@
           const response = await fetch(endpoint);
           if (!response.ok) {
             throw new Error(response.status === 404
-              ? "Playlist not found, or it is not publicly available."
-              : "The Worker or Yandex API returned HTTP " + response.status + ".");
+              ? "Плейлист не найден или он не является публичным."
+              : "Worker или API Яндекс Музыки вернул HTTP " + response.status + ".");
           }
 
           const payload = await response.json();
           const tracks = payload && payload.result && Array.isArray(payload.result.tracks)
             ? payload.result.tracks
             : null;
-          if (!tracks) throw new Error("Yandex returned an unexpected playlist response.");
+          if (!tracks) throw new Error("Получен неожиданный ответ API Яндекс Музыки.");
 
           const exportData = {
             likes: tracks
@@ -230,16 +201,19 @@
           if (downloadUrl) URL.revokeObjectURL(downloadUrl);
           downloadUrl = URL.createObjectURL(blob);
           download.href = downloadUrl;
-          count.textContent = exportData.likes.length + " track" + (exportData.likes.length === 1 ? "" : "s") + " ready to download.";
-          result.hidden = false;
-          status.textContent = "Playlist exported successfully.";
-          status.className = "success";
+          count.textContent = String(exportData.likes.length);
+          renderTrackList(exportData.likes);
+          result.classList.remove("hidden");
+          status.textContent = "Плейлист готов к скачиванию.";
+          status.className = "status ok";
         } catch (error) {
-          status.textContent = error instanceof Error ? error.message : "Export failed. Check the URL and Worker, then try again.";
-          status.className = "error";
+          status.textContent = error instanceof TypeError
+            ? "Не удалось связаться с Worker. Проверьте адрес и настройки CORS."
+            : error instanceof Error ? error.message : "Не удалось экспортировать плейлист.";
+          status.className = "status error";
         } finally {
           submitButton.disabled = false;
-          submitButton.textContent = "Export playlist";
+          submitButton.textContent = "Сохранить плейлист в JSON";
         }
       });
     </script>
